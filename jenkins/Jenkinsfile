@@ -10,7 +10,7 @@ stage('Checkout') {
 
 steps {
 
-git 'YOUR_REPOSITORY_URL'
+git 'https://github.com/Hemanthmahendrakar/AI-ChatOps-Automation.git'
 
 }
 
