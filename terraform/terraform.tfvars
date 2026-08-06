@@ -1,4 +1,4 @@
-aws_region = "ap-south-1"
+aws_region = "us-east-1"
 
 project_name = "ai-infrastructure"
 
@@ -10,6 +10,6 @@ availability_zone = "ap-south-1a"
 
 my_ip = "0.0.0.0/32"
 
-ami_id = "ami-0f5ee92e2d63afc18"
+ami_id = "ami-0f8a61b66d1accaee"
 
 instance_type = "t3.micro"
