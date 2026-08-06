@@ -1,0 +1,62 @@
+pipeline {
+
+agent any
+
+
+stages {
+
+
+stage('Checkout') {
+
+steps {
+
+git 'https://github.com/Hemanthmahendrakar/AI-ChatOps-Automation.git'
+
+}
+
+}
+
+
+
+stage('Terraform') {
+
+steps {
+
+sh '''
+
+cd terraform
+
+terraform init
+
+terraform apply -auto-approve
+
+'''
+
+}
+
+}
+
+
+
+stage('Ansible Deploy') {
+
+steps {
+
+sh '''
+
+cd ansible
+
+ansible-playbook playbook.yml
+
+'''
+
+}
+
+}
+
+
+
+}
+
+
+}
