@@ -1,0 +1,29 @@
+---
+
+- name: Setup Open WebUI Server
+
+  hosts: openwebui
+
+  become: yes
+
+
+  roles:
+
+    - docker
+
+    - openwebui
+
+
+
+- name: Setup Ollama Server
+
+  hosts: ollama
+
+  become: yes
+
+
+  roles:
+
+    - docker
+
+    - ollama

@@ -1,0 +1,35 @@
+---
+
+- name: Update packages
+
+  apt:
+
+    update_cache: yes
+
+
+
+- name: Install docker
+
+  apt:
+
+    name:
+
+      - docker.io
+
+      - docker-compose
+
+      - python3-docker
+
+    state: present
+
+
+
+- name: Start docker
+
+  service:
+
+    name: docker
+
+    state: started
+
+    enabled: yes

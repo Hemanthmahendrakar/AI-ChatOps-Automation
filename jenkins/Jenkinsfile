@@ -1,0 +1,62 @@
+pipeline {
+
+agent any
+
+
+stages {
+
+
+stage('Checkout') {
+
+steps {
+
+git 'YOUR_REPOSITORY_URL'
+
+}
+
+}
+
+
+
+stage('Terraform') {
+
+steps {
+
+sh '''
+
+cd terraform
+
+terraform init
+
+terraform apply -auto-approve
+
+'''
+
+}
+
+}
+
+
+
+stage('Ansible Deploy') {
+
+steps {
+
+sh '''
+
+cd ansible
+
+ansible-playbook playbook.yml
+
+'''
+
+}
+
+}
+
+
+
+}
+
+
+}

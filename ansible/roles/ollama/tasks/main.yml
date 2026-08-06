@@ -1,0 +1,21 @@
+---
+
+- name: Deploy Ollama
+
+  docker_container:
+
+    name: ollama
+
+    image: ollama/ollama
+
+    state: started
+
+    restart_policy: always
+
+    ports:
+
+      - "11434:11434"
+
+    volumes:
+
+      - ollama:/root/.ollama
