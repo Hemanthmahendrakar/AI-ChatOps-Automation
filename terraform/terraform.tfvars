@@ -8,7 +8,7 @@ subnet_cidr = "10.0.1.0/24"
 
 availability_zone = "us-east-1a"
 
-my_ip = "0.0.0.0/32"
+my_ip = "52.205.95.119/32"
 
 ami_id = "ami-0f8a61b66d1accaee"
 
