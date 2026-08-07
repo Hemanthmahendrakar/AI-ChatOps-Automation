@@ -8,7 +8,6 @@ resource "aws_vpc" "main" {
   }
 }
 
-
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
@@ -16,7 +15,6 @@ resource "aws_internet_gateway" "main" {
     Name = "${var.project_name}-igw"
   }
 }
-
 
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
@@ -28,7 +26,6 @@ resource "aws_subnet" "public" {
     Name = "${var.project_name}-public-subnet"
   }
 }
-
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -43,7 +40,6 @@ resource "aws_route_table" "public" {
   }
 }
 
-
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
@@ -57,10 +53,10 @@ resource "aws_security_group" "ai_servers" {
 
 
   ingress {
-    description = "SSH"
+    description = "SSH access"
     from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    to_port    = 22
+    protocol   = "tcp"
 
     cidr_blocks = [
       var.my_ip
@@ -71,8 +67,8 @@ resource "aws_security_group" "ai_servers" {
   ingress {
     description = "Open WebUI"
     from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
+    to_port    = 3000
+    protocol   = "tcp"
 
     cidr_blocks = [
       "0.0.0.0/0"
@@ -83,8 +79,8 @@ resource "aws_security_group" "ai_servers" {
   ingress {
     description = "Ollama API"
     from_port   = 11434
-    to_port     = 11434
-    protocol    = "tcp"
+    to_port    = 11434
+    protocol   = "tcp"
 
     cidr_blocks = [
       "0.0.0.0/0"
@@ -94,8 +90,8 @@ resource "aws_security_group" "ai_servers" {
 
   egress {
     from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    to_port    = 0
+    protocol   = "-1"
 
     cidr_blocks = [
       "0.0.0.0/0"
@@ -117,13 +113,26 @@ resource "aws_instance" "openwebui" {
   vpc_security_group_ids      = [aws_security_group.ai_servers.id]
   associate_public_ip_address = true
 
-  # Existing AWS EC2 Key Pair
   key_name = "devops"
+
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+
+    delete_on_termination = true
+
+    tags = {
+      Name = "${var.project_name}-openwebui-root-volume"
+    }
+  }
+
 
   tags = {
     Name = "openwebui-server"
   }
 }
+
 
 
 resource "aws_instance" "ollama" {
@@ -134,8 +143,20 @@ resource "aws_instance" "ollama" {
   vpc_security_group_ids      = [aws_security_group.ai_servers.id]
   associate_public_ip_address = true
 
-  # Existing AWS EC2 Key Pair
   key_name = "devops"
+
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+
+    delete_on_termination = true
+
+    tags = {
+      Name = "${var.project_name}-ollama-root-volume"
+    }
+  }
+
 
   tags = {
     Name = "ollama-server"
