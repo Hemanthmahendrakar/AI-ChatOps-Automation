@@ -194,9 +194,9 @@ pipeline {
 
 
 
-                    OPENWEBUI_IP=$(terraform output -raw openwebui_ip)
+                    OPENWEBUI_IP=$(terraform output -raw openwebui_public_ip)
 
-                    OLLAMA_IP=$(terraform output -raw ollama_ip)
+                    OLLAMA_IP=$(terraform output -raw ollama_public_ip)
 
 
 
