@@ -35,6 +35,7 @@ pipeline {
                         aws configure set default.output json
 
                         echo "Checking AWS identity..."
+
                         aws sts get-caller-identity
                     '''
                 }
@@ -55,7 +56,7 @@ pipeline {
 
                         echo "Initializing Terraform..."
 
-                        terraform init -reconfigure -input=true
+                        yes | terraform init -reconfigure
                     '''
                 }
             }
