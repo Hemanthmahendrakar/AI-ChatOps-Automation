@@ -41,7 +41,6 @@ pipeline {
                     ]
                 ]) {
 
-
                     sh '''
 
                     echo "Checking AWS credentials..."
@@ -60,7 +59,6 @@ pipeline {
 
 
 
-
         stage('Terraform Init') {
 
             steps {
@@ -72,16 +70,13 @@ pipeline {
                     ]
                 ]) {
 
-
                     sh '''
 
                     echo "Terraform Init"
 
                     cd terraform
 
-
                     terraform init -reconfigure
-
 
                     '''
 
@@ -90,8 +85,6 @@ pipeline {
             }
 
         }
-
-
 
 
 
@@ -99,7 +92,6 @@ pipeline {
 
             steps {
 
-
                 withCredentials([
                     [
                         $class: 'AmazonWebServicesCredentialsBinding',
@@ -107,17 +99,13 @@ pipeline {
                     ]
                 ]) {
 
-
                     sh '''
 
                     echo "Terraform Plan"
 
-
                     cd terraform
 
-
-                    terraform plan
-
+                    terraform plan -out=tfplan
 
                     '''
 
@@ -126,17 +114,13 @@ pipeline {
             }
 
         }
-
-
 
 
 
 
         stage('Terraform Apply') {
 
-
             steps {
-
 
                 withCredentials([
                     [
@@ -145,17 +129,13 @@ pipeline {
                     ]
                 ]) {
 
-
                     sh '''
 
                     echo "Terraform Apply"
 
-
                     cd terraform
 
-
-                    terraform apply -auto-approve
-
+                    terraform apply -auto-approve tfplan
 
                     '''
 
@@ -164,8 +144,6 @@ pipeline {
             }
 
         }
-
-
 
 
 
@@ -173,9 +151,7 @@ pipeline {
 
         stage('Get Terraform Outputs') {
 
-
             steps {
-
 
                 withCredentials([
                     [
@@ -183,7 +159,6 @@ pipeline {
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
-
 
                     sh '''
 
@@ -193,14 +168,13 @@ pipeline {
                     cd terraform
 
 
-
                     OPENWEBUI_IP=$(terraform output -raw openwebui_public_ip)
 
                     OLLAMA_IP=$(terraform output -raw ollama_public_ip)
 
 
 
-                    echo "Open WebUI IP: $OPENWEBUI_IP"
+                    echo "OpenWebUI IP: $OPENWEBUI_IP"
 
                     echo "Ollama IP: $OLLAMA_IP"
 
@@ -216,8 +190,7 @@ pipeline {
 
 
 
-                    echo "Updated Ansible Inventory"
-
+                    echo "Updated Inventory"
 
                     cat inventory.ini
 
@@ -225,6 +198,61 @@ pipeline {
                     '''
 
                 }
+
+            }
+
+        }
+
+
+
+
+
+        stage('Wait for SSH') {
+
+            steps {
+
+                sh '''
+
+                echo "Waiting for EC2 SSH readiness..."
+
+
+                OPENWEBUI_IP=$(cd terraform && terraform output -raw openwebui_public_ip)
+
+
+                for i in {1..30}
+
+                do
+
+
+                    echo "Checking SSH attempt $i"
+
+
+                    if nc -z $OPENWEBUI_IP 22
+
+                    then
+
+                        echo "SSH is ready on $OPENWEBUI_IP"
+
+                        exit 0
+
+                    fi
+
+
+                    echo "SSH not ready yet..."
+
+                    sleep 10
+
+
+                done
+
+
+
+                echo "SSH failed to become available"
+
+                exit 1
+
+
+                '''
 
             }
 
@@ -250,13 +278,15 @@ pipeline {
                     echo "Running Ansible Deployment"
 
 
+
                     cd ansible
 
 
 
                     ansible-playbook \
                     -i inventory.ini \
-                    playbook.yml
+                    playbook.yml \
+                    -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'"
 
 
 
@@ -269,9 +299,7 @@ pipeline {
         }
 
 
-
     }
-
 
 
 
@@ -281,11 +309,16 @@ pipeline {
 
         success {
 
-            echo "================================="
 
-            echo "Deployment completed successfully"
+            echo """
 
-            echo "================================="
+            =================================
+
+            Deployment completed successfully
+
+            =================================
+
+            """
 
         }
 
@@ -293,11 +326,16 @@ pipeline {
 
         failure {
 
-            echo "================================="
 
-            echo "Deployment failed. Check logs"
+            echo """
 
-            echo "================================="
+            =================================
+
+            Deployment failed. Check logs
+
+            =================================
+
+            """
 
         }
 
