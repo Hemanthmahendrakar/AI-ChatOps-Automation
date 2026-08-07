@@ -10,6 +10,6 @@ availability_zone = "us-east-1a"
 
 my_ip = "0.0.0.0/32"
 
-ami_id = "ami-0f5ee92e2d63afc18"
+ami_id = "ami-0f8a61b66d1accaee"
 
 instance_type = "t3.micro"
