@@ -135,7 +135,7 @@ resource "aws_instance" "ollama" {
   associate_public_ip_address = true
 
   # Existing AWS EC2 Key Pair
-  key_name = "ai-infrastructure-key"
+  key_name = "devops"
 
   tags = {
     Name = "ollama-server"
