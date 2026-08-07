@@ -21,11 +21,3 @@ terraform {
 
   }
 }
-
-variable "ami_id" {
-
-  description = "Ubuntu AMI ID"
-
-  type = string
-
-}
