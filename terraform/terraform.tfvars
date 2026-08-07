@@ -12,4 +12,4 @@ my_ip = "52.205.95.119/32"
 
 ami_id = "ami-0f8a61b66d1accaee"
 
-instance_type = "t3.micro"
+instance_type = "m7i-flex.large"
