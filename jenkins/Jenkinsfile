@@ -6,11 +6,8 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-
     environment {
-
         AWS_DEFAULT_REGION = 'us-east-1'
-
     }
 
 
@@ -41,9 +38,10 @@ pipeline {
                     ]
                 ]) {
 
+
                     sh '''
 
-                    echo "Checking AWS credentials..."
+                    echo "Checking AWS credentials"
 
                     aws configure set region $AWS_DEFAULT_REGION
 
@@ -59,9 +57,11 @@ pipeline {
 
 
 
+
         stage('Terraform Init') {
 
             steps {
+
 
                 withCredentials([
                     [
@@ -69,6 +69,7 @@ pipeline {
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
+
 
                     sh '''
 
@@ -88,9 +89,11 @@ pipeline {
 
 
 
+
         stage('Terraform Plan') {
 
             steps {
+
 
                 withCredentials([
                     [
@@ -98,6 +101,7 @@ pipeline {
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
+
 
                     sh '''
 
@@ -118,9 +122,12 @@ pipeline {
 
 
 
+
         stage('Terraform Apply') {
 
+
             steps {
+
 
                 withCredentials([
                     [
@@ -128,6 +135,7 @@ pipeline {
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
+
 
                     sh '''
 
@@ -149,9 +157,11 @@ pipeline {
 
 
 
-        stage('Get Terraform Outputs') {
+        stage('Generate Ansible Inventory') {
+
 
             steps {
+
 
                 withCredentials([
                     [
@@ -160,9 +170,10 @@ pipeline {
                     ]
                 ]) {
 
+
                     sh '''
 
-                    echo "Reading Terraform outputs"
+                    echo "Generating Ansible Inventory"
 
 
                     cd terraform
@@ -171,7 +182,6 @@ pipeline {
                     OPENWEBUI_IP=$(terraform output -raw openwebui_public_ip)
 
                     OLLAMA_IP=$(terraform output -raw ollama_public_ip)
-
 
 
                     echo "OpenWebUI IP: $OPENWEBUI_IP"
@@ -184,13 +194,27 @@ pipeline {
 
 
 
-                    sed -i "s/OPENWEBUI_IP/$OPENWEBUI_IP/g" inventory.ini
+                    cat > inventory.ini <<EOF
 
-                    sed -i "s/OLLAMA_IP/$OLLAMA_IP/g" inventory.ini
+[openwebui]
+
+openwebui-server ansible_host=$OPENWEBUI_IP
 
 
 
-                    echo "Updated Inventory"
+[ollama]
+
+ollama-server ansible_host=$OLLAMA_IP
+
+
+
+[all:vars]
+
+ansible_user=ubuntu
+
+EOF
+
+
 
                     cat inventory.ini
 
@@ -207,56 +231,82 @@ pipeline {
 
 
 
+
+
         stage('Wait for SSH') {
+
 
             steps {
 
-                sh '''
 
-                echo "Waiting for EC2 SSH readiness..."
-
-
-                OPENWEBUI_IP=$(cd terraform && terraform output -raw openwebui_public_ip)
-
-
-                for i in {1..30}
-
-                do
-
-
-                    echo "Checking SSH attempt $i"
-
-
-                    if nc -z $OPENWEBUI_IP 22
-
-                    then
-
-                        echo "SSH is ready on $OPENWEBUI_IP"
-
-                        exit 0
-
-                    fi
-
-
-                    echo "SSH not ready yet..."
-
-                    sleep 10
-
-
-                done
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
 
 
 
-                echo "SSH failed to become available"
+                    sh '''
 
-                exit 1
+                    echo "Waiting for SSH readiness"
 
 
-                '''
+
+                    cd terraform
+
+
+
+                    OPENWEBUI_IP=$(terraform output -raw openwebui_public_ip)
+
+
+
+                    echo "Waiting for $OPENWEBUI_IP"
+
+
+
+                    for i in {1..30}
+
+                    do
+
+
+                        echo "SSH attempt $i"
+
+
+
+                        if nc -z $OPENWEBUI_IP 22
+
+                        then
+
+                            echo "SSH is ready"
+
+                            exit 0
+
+                        fi
+
+
+
+                        sleep 10
+
+
+                    done
+
+
+
+                    echo "SSH timeout"
+
+                    exit 1
+
+
+                    '''
+
+                }
 
             }
 
         }
+
 
 
 
@@ -275,7 +325,7 @@ pipeline {
 
                     sh '''
 
-                    echo "Running Ansible Deployment"
+                    echo "Running Ansible"
 
 
 
@@ -304,6 +354,7 @@ pipeline {
 
 
 
+
     post {
 
 
@@ -321,6 +372,7 @@ pipeline {
             """
 
         }
+
 
 
 
