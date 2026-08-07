@@ -2,8 +2,12 @@ pipeline {
 
     agent any
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'   // Change to your AWS region
+        AWS_DEFAULT_REGION = 'us-east-1'
     }
 
     stages {
@@ -15,57 +19,118 @@ pipeline {
             }
         }
 
+
         stage('AWS CLI Authentication') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'   // Replace with your Jenkins Credential ID
-                ]]) {
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
                     sh '''
                         echo "Configuring AWS CLI..."
 
                         aws configure set default.region $AWS_DEFAULT_REGION
                         aws configure set default.output json
 
-                        echo "Verifying AWS Authentication..."
+                        echo "Checking AWS identity..."
                         aws sts get-caller-identity
                     '''
                 }
             }
         }
 
-        stage('Terraform') {
+
+        stage('Terraform Init') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'
-                ]]) {
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
                     sh '''
                         cd terraform
-                        terraform init
+
+                        echo "Initializing Terraform..."
+
+                        terraform init -reconfigure
+                    '''
+                }
+            }
+        }
+
+
+        stage('Terraform Plan') {
+            steps {
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
+                    sh '''
+                        cd terraform
+
+                        echo "Terraform Plan..."
+
                         terraform plan
+                    '''
+                }
+            }
+        }
+
+
+        stage('Terraform Apply') {
+            steps {
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
+                    sh '''
+                        cd terraform
+
+                        echo "Terraform Apply..."
+
                         terraform apply -auto-approve
                     '''
                 }
             }
         }
 
+
         stage('Ansible Deploy') {
             steps {
-                sh '''
-                    cd ansible
-                    ansible-playbook playbook.yml
-                '''
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
+                    sh '''
+                        cd ansible
+
+                        echo "Running Ansible..."
+
+                        ansible-playbook playbook.yml
+                    '''
+                }
             }
         }
     }
 
+
     post {
+
         success {
             echo "Pipeline completed successfully."
         }
+
         failure {
-            echo "Pipeline failed. Check the logs for details."
+            echo "Pipeline failed. Check logs."
         }
     }
 }
