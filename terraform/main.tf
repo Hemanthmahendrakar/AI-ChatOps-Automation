@@ -173,7 +173,7 @@ resource "local_file" "private_key" {
 
   content = tls_private_key.ssh_key.private_key_pem
 
-  filename = "${path.module}/ai-server-key.pem"
+  filename = "${path.module}/key/ai-server-key.pem"
 
   file_permission = "0400"
 
