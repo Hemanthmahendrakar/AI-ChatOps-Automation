@@ -7,131 +7,211 @@ pipeline {
     }
 
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
+        AWS_DEFAULT_REGION = "us-east-1"
     }
+
 
     stages {
 
+
         stage('Checkout') {
+
             steps {
+
                 git branch: 'main',
                     url: 'https://github.com/Hemanthmahendrakar/AI-ChatOps-Automation.git'
+
             }
+
         }
 
 
-        stage('AWS CLI Authentication') {
+
+        stage('AWS Authentication') {
+
             steps {
+
                 withCredentials([
                     [
                         $class: 'AmazonWebServicesCredentialsBinding',
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
+
+
                     sh '''
-                        echo "Configuring AWS CLI..."
 
-                        aws configure set default.region $AWS_DEFAULT_REGION
-                        aws configure set default.output json
+                    aws configure set region $AWS_DEFAULT_REGION
 
-                        echo "Checking AWS identity..."
+                    aws sts get-caller-identity
 
-                        aws sts get-caller-identity
                     '''
+
                 }
+
             }
+
         }
+
 
 
         stage('Terraform Init') {
+
             steps {
+
+
                 withCredentials([
                     [
                         $class: 'AmazonWebServicesCredentialsBinding',
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
+
+
                     sh '''
-                        cd terraform
 
-                        echo "Initializing Terraform..."
+                    cd terraform
 
-                        yes | terraform init -reconfigure
+                    terraform init -reconfigure
+
                     '''
+
                 }
+
             }
+
         }
 
 
-        stage('Terraform Plan') {
-            steps {
-                withCredentials([
-                    [
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds'
-                    ]
-                ]) {
-                    sh '''
-                        cd terraform
-
-                        echo "Terraform Plan..."
-
-                        terraform plan
-                    '''
-                }
-            }
-        }
 
 
         stage('Terraform Apply') {
+
             steps {
+
+
                 withCredentials([
                     [
                         $class: 'AmazonWebServicesCredentialsBinding',
                         credentialsId: 'aws-creds'
                     ]
                 ]) {
+
+
                     sh '''
-                        cd terraform
 
-                        echo "Terraform Apply..."
+                    cd terraform
 
-                        terraform apply -auto-approve
+                    terraform apply -auto-approve
+
                     '''
+
                 }
+
             }
+
         }
+
+
+
+
+
+        stage('Prepare Ansible Inventory') {
+
+
+            steps {
+
+
+                sh '''
+
+                cd terraform
+
+
+                OPENWEBUI_IP=$(terraform output -raw openwebui_ip)
+
+                OLLAMA_IP=$(terraform output -raw ollama_ip)
+
+
+
+                echo "OpenWebUI IP: $OPENWEBUI_IP"
+
+                echo "Ollama IP: $OLLAMA_IP"
+
+
+
+                cd ../ansible
+
+
+
+                sed -i "s/OPENWEBUI_IP/$OPENWEBUI_IP/g" inventory.ini
+
+                sed -i "s/OLLAMA_IP/$OLLAMA_IP/g" inventory.ini
+
+
+
+                cat inventory.ini
+
+
+                '''
+
+            }
+
+        }
+
+
+
 
 
         stage('Ansible Deploy') {
+
+
             steps {
-                withCredentials([
-                    [
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds'
-                    ]
-                ]) {
+
+
+                sshagent(['ec2-key']) {
+
+
                     sh '''
-                        cd ansible
 
-                        echo "Running Ansible..."
+                    cd ansible
 
-                        ansible-playbook playbook.yml
+
+                    ansible-playbook \
+                    -i inventory.ini \
+                    playbook.yml
+
+
                     '''
+
                 }
+
             }
+
         }
+
+
     }
+
+
 
 
     post {
 
+
         success {
-            echo "Pipeline completed successfully."
+
+            echo "Deployment completed successfully"
+
         }
 
+
         failure {
-            echo "Pipeline failed. Check logs."
+
+            echo "Deployment failed"
+
         }
+
+
     }
+
 }
