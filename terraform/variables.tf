@@ -30,3 +30,13 @@ variable "my_ip" {
   description = "Your public IP address for SSH access"
   type        = string
 }
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+}
+
+variable "ami_id" {
+  description = "EC2 AMI ID"
+  type        = string
+}
