@@ -2,6 +2,10 @@ pipeline {
 
     agent any
 
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1'   // Change to your AWS region
+    }
+
     stages {
 
         stage('Checkout') {
@@ -11,13 +15,38 @@ pipeline {
             }
         }
 
+        stage('AWS CLI Authentication') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'   // Replace with your Jenkins Credential ID
+                ]]) {
+                    sh '''
+                        echo "Configuring AWS CLI..."
+
+                        aws configure set default.region $AWS_DEFAULT_REGION
+                        aws configure set default.output json
+
+                        echo "Verifying AWS Authentication..."
+                        aws sts get-caller-identity
+                    '''
+                }
+            }
+        }
+
         stage('Terraform') {
             steps {
-                sh '''
-                    cd terraform
-                    terraform init
-                    terraform apply -auto-approve
-                '''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh '''
+                        cd terraform
+                        terraform init
+                        terraform plan
+                        terraform apply -auto-approve
+                    '''
+                }
             }
         }
 
@@ -29,6 +58,14 @@ pipeline {
                 '''
             }
         }
+    }
 
+    post {
+        success {
+            echo "Pipeline completed successfully."
+        }
+        failure {
+            echo "Pipeline failed. Check the logs for details."
+        }
     }
 }
