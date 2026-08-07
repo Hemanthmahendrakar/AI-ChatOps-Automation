@@ -1,4 +1,4 @@
-aws_region = "ap-south-1"
+aws_region = "us-east-1"
 
 project_name = "ai-infrastructure"
 
@@ -6,7 +6,7 @@ vpc_cidr = "10.0.0.0/16"
 
 subnet_cidr = "10.0.1.0/24"
 
-availability_zone = "ap-south-1a"
+availability_zone = "us-east-1a"
 
 my_ip = "0.0.0.0/32"
 
