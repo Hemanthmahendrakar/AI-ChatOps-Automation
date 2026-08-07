@@ -1,14 +1,15 @@
 ---
 
-- name: Run Open WebUI container
+- name: Run Ollama container
+
 
   docker_container:
 
 
-    name: open-webui
+    name: ollama
 
 
-    image: ghcr.io/open-webui/open-webui:main
+    image: ollama/ollama
 
 
     state: started
@@ -19,4 +20,11 @@
 
     ports:
 
-      - "3000:8080"
+
+      - "11434:11434"
+
+
+    volumes:
+
+
+      - ollama:/root/.ollama
