@@ -157,6 +157,32 @@ pipeline {
 
 
 
+        stage('Wait for Instance Boot') {
+
+
+            steps {
+
+
+                sh '''
+
+                echo "Waiting 3 minutes for EC2 initialization..."
+
+                sleep 180
+
+                echo "Instance boot wait completed"
+
+                '''
+
+            }
+
+        }
+
+
+
+
+
+
+
         stage('Generate Ansible Inventory') {
 
 
@@ -176,12 +202,15 @@ pipeline {
                     echo "Generating Ansible Inventory"
 
 
+
                     cd terraform
+
 
 
                     OPENWEBUI_IP=$(terraform output -raw openwebui_public_ip)
 
                     OLLAMA_IP=$(terraform output -raw ollama_public_ip)
+
 
 
                     echo "OpenWebUI IP: $OPENWEBUI_IP"
@@ -190,7 +219,9 @@ pipeline {
 
 
 
+
                     cd ../ansible
+
 
 
 
@@ -216,88 +247,12 @@ EOF
 
 
 
+
+                    echo "Updated Inventory"
+
                     cat inventory.ini
 
 
-                    '''
-
-                }
-
-            }
-
-        }
-
-
-
-
-
-
-
-        stage('Wait for SSH') {
-
-
-            steps {
-
-
-                withCredentials([
-                    [
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds'
-                    ]
-                ]) {
-
-
-
-                    sh '''
-
-                    echo "Waiting for SSH readiness"
-
-
-
-                    cd terraform
-
-
-
-                    OPENWEBUI_IP=$(terraform output -raw openwebui_public_ip)
-
-
-
-                    echo "Waiting for $OPENWEBUI_IP"
-
-
-
-                    for i in {1..30}
-
-                    do
-
-
-                        echo "SSH attempt $i"
-
-
-
-                        if nc -z $OPENWEBUI_IP 22
-
-                        then
-
-                            echo "SSH is ready"
-
-                            exit 0
-
-                        fi
-
-
-
-                        sleep 10
-
-
-                    done
-
-
-
-                    echo "SSH timeout"
-
-                    exit 1
-
 
                     '''
 
@@ -306,6 +261,7 @@ EOF
             }
 
         }
+
 
 
 
@@ -330,6 +286,7 @@ EOF
 
 
                     cd ansible
+
 
 
 
