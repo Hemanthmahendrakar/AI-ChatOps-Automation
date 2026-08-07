@@ -1,6 +1,6 @@
 ---
 
-- name: Update packages
+- name: Update apt cache
 
   apt:
 
@@ -8,7 +8,24 @@
 
 
 
-- name: Install docker
+- name: Install Docker dependencies
+
+  apt:
+
+    name:
+
+      - ca-certificates
+
+      - curl
+
+      - gnupg
+
+    state: present
+
+
+
+
+- name: Install Docker
 
   apt:
 
@@ -18,13 +35,12 @@
 
       - docker-compose
 
-      - python3-docker
-
     state: present
 
 
 
-- name: Start docker
+
+- name: Start Docker
 
   service:
 
