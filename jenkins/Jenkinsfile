@@ -6,8 +6,11 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+
     environment {
-        AWS_DEFAULT_REGION = "us-east-1"
+
+        AWS_DEFAULT_REGION = 'us-east-1'
+
     }
 
 
@@ -41,6 +44,8 @@ pipeline {
 
                     sh '''
 
+                    echo "Checking AWS credentials..."
+
                     aws configure set region $AWS_DEFAULT_REGION
 
                     aws sts get-caller-identity
@@ -55,7 +60,42 @@ pipeline {
 
 
 
+
         stage('Terraform Init') {
+
+            steps {
+
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
+
+
+                    sh '''
+
+                    echo "Terraform Init"
+
+                    cd terraform
+
+
+                    terraform init -reconfigure
+
+
+                    '''
+
+                }
+
+            }
+
+        }
+
+
+
+
+
+        stage('Terraform Plan') {
 
             steps {
 
@@ -70,9 +110,14 @@ pipeline {
 
                     sh '''
 
+                    echo "Terraform Plan"
+
+
                     cd terraform
 
-                    terraform init -reconfigure
+
+                    terraform plan
+
 
                     '''
 
@@ -81,12 +126,15 @@ pipeline {
             }
 
         }
+
+
 
 
 
 
         stage('Terraform Apply') {
 
+
             steps {
 
 
@@ -100,9 +148,14 @@ pipeline {
 
                     sh '''
 
+                    echo "Terraform Apply"
+
+
                     cd terraform
 
+
                     terraform apply -auto-approve
+
 
                     '''
 
@@ -116,47 +169,68 @@ pipeline {
 
 
 
-        stage('Prepare Ansible Inventory') {
+
+
+        stage('Get Terraform Outputs') {
 
 
             steps {
 
 
-                sh '''
-
-                cd terraform
-
-
-                OPENWEBUI_IP=$(terraform output -raw openwebui_ip)
-
-                OLLAMA_IP=$(terraform output -raw ollama_ip)
+                withCredentials([
+                    [
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]
+                ]) {
 
 
+                    sh '''
 
-                echo "OpenWebUI IP: $OPENWEBUI_IP"
-
-                echo "Ollama IP: $OLLAMA_IP"
-
+                    echo "Reading Terraform outputs"
 
 
-                cd ../ansible
+                    cd terraform
 
 
 
-                sed -i "s/OPENWEBUI_IP/$OPENWEBUI_IP/g" inventory.ini
+                    OPENWEBUI_IP=$(terraform output -raw openwebui_ip)
 
-                sed -i "s/OLLAMA_IP/$OLLAMA_IP/g" inventory.ini
-
-
-
-                cat inventory.ini
+                    OLLAMA_IP=$(terraform output -raw ollama_ip)
 
 
-                '''
+
+                    echo "Open WebUI IP: $OPENWEBUI_IP"
+
+                    echo "Ollama IP: $OLLAMA_IP"
+
+
+
+                    cd ../ansible
+
+
+
+                    sed -i "s/OPENWEBUI_IP/$OPENWEBUI_IP/g" inventory.ini
+
+                    sed -i "s/OLLAMA_IP/$OLLAMA_IP/g" inventory.ini
+
+
+
+                    echo "Updated Ansible Inventory"
+
+
+                    cat inventory.ini
+
+
+                    '''
+
+                }
 
             }
 
         }
+
+
 
 
 
@@ -173,12 +247,17 @@ pipeline {
 
                     sh '''
 
+                    echo "Running Ansible Deployment"
+
+
                     cd ansible
+
 
 
                     ansible-playbook \
                     -i inventory.ini \
                     playbook.yml
+
 
 
                     '''
@@ -190,7 +269,9 @@ pipeline {
         }
 
 
+
     }
+
 
 
 
@@ -200,14 +281,23 @@ pipeline {
 
         success {
 
+            echo "================================="
+
             echo "Deployment completed successfully"
+
+            echo "================================="
 
         }
 
 
+
         failure {
 
-            echo "Deployment failed"
+            echo "================================="
+
+            echo "Deployment failed. Check logs"
+
+            echo "================================="
 
         }
 
